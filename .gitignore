@@ -1,0 +1,24 @@
+cd /Users/poorvikap/Desktop/RoadSense
+cat > .gitignore << 'EOF'
+# Large dataset files
+*.csv
+*.zip
+US_Accidents_March23.csv
+
+# Virtual environment
+venv/
+__pycache__/
+*.pyc
+
+# Logs
+*.log
+
+# macOS
+.DS_Store
+
+# Database
+*.db
+
+# Jupyter checkpoints
+.ipynb_checkpoints/
+EOF
