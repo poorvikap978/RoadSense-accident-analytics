@@ -1,14 +1,15 @@
-#!/bin/bash
-echo "Starting Flask backend..."
-cd app/backend
-nohup python3 app.py > flask.log 2>&1 &
-echo "Flask PID: $!"
+pkill -9 -f "python3 app.py"
+pkill -9 -f "streamlit run"
+lsof -ti:9000 | xargs kill -9 2>/dev/null
+lsof -ti:8501 | xargs kill -9 2>/dev/null
 
+cd /Users/poorvikap/Desktop/RoadSense/app/backend
+nohup python3 app.py > flask.log 2>&1 &
 sleep 2
 
-echo "Starting Streamlit frontend..."
-cd ../frontend
+cd /Users/poorvikap/Desktop/RoadSense/app/frontend
 nohup streamlit run streamlit_app.py > streamlit.log 2>&1 &
-echo "Streamlit PID: $!"
+sleep 2
 
-echo "Both servers starting. Check flask.log and streamlit.log if issues occur."
+curl http://localhost:9000/
+open http://localhost:9000

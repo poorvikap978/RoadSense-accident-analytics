@@ -7,16 +7,18 @@ import traceback
 
 app = Flask(__name__)
 
-# Build paths relative to this script's own location
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # ---------------------------------------------------
-# Load trained models
+# Load trained models and scaler
 # ---------------------------------------------------
 dt_model = joblib.load(os.path.join(BASE_DIR, '../models/decision_tree_model.pkl'))
 feature_columns = joblib.load(os.path.join(BASE_DIR, '../models/feature_columns.pkl'))
 kmeans_model = joblib.load(os.path.join(BASE_DIR, '../models/kmeans_model.pkl'))
 cluster_scaler = joblib.load(os.path.join(BASE_DIR, '../models/cluster_scaler.pkl'))
+feature_scaler = joblib.load(os.path.join(BASE_DIR, '../models/feature_scaler.pkl'))
+
+NUMERIC_COLS = ['Temperature(F)', 'Humidity(%)', 'Visibility(mi)', 'Wind_Speed(mph)']
 
 print("Models loaded successfully")
 print("Feature columns:", feature_columns)
@@ -57,7 +59,6 @@ def predict():
         if data is None:
             return jsonify({'error': 'No JSON body received'}), 400
 
-        # Build a row with all training columns, default 0, correct dtype
         row = pd.DataFrame([[0] * len(feature_columns)], columns=feature_columns, dtype=float)
 
         if 'Temperature(F)' in row.columns:
@@ -81,11 +82,16 @@ def predict():
         if weather_col in row.columns:
             row.at[0, weather_col] = 1.0
 
-        # Classification prediction
+        # Apply the same scaling used during training
+        row[NUMERIC_COLS] = feature_scaler.transform(row[NUMERIC_COLS])
+
+        # Classification prediction (with probability)
+        pred_proba = dt_model.predict_proba(row[feature_columns])[0]
         pred = dt_model.predict(row[feature_columns])[0]
+        major_prob = round(float(pred_proba[1]), 3)
         severity_label = "Major Severity" if int(pred) == 1 else "Minor Severity"
 
-        # Clustering prediction (order must match training: Lat, Lng, Hour, Temp, Visibility)
+        # Clustering prediction (raw values, scaled separately with cluster_scaler)
         cluster_features = [[
             float(data.get('lat', 0)),
             float(data.get('lng', 0)),
@@ -106,7 +112,11 @@ def predict():
         conn.commit()
         conn.close()
 
-        return jsonify({'severity': severity_label, 'cluster': cluster})
+        return jsonify({
+            'severity': severity_label,
+            'cluster': cluster,
+            'major_severity_probability': major_prob
+        })
 
     except Exception as e:
         traceback.print_exc()

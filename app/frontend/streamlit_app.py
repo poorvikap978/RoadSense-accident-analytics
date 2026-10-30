@@ -39,6 +39,7 @@ with tab1:
             else:
                 st.success(f"✅ Predicted: {result['severity']}")
             st.info(f"Assigned to hotspot cluster: {result['cluster']}")
+            st.write(f"Model's confidence of Major Severity: {result.get('major_severity_probability', 'N/A')}")
         except Exception as e:
             st.error(f"Could not reach backend. Make sure Flask is running. Error: {e}")
 
